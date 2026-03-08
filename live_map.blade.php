@@ -1504,7 +1504,7 @@
                     }
                 }
 
-                var OWM_API_KEY = "3080038ebd8f0e05de42ee58e84cea74";
+                var OWM_API_KEY = "Enter your key here";
                 if (!OWM_API_KEY || OWM_API_KEY === "YOUR_OPENWEATHERMAP_API_KEY_HERE") {
                     console.warn('[LiveMap] OWM API key not set; skipping overlays');
                     return;
