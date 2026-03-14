@@ -11,12 +11,10 @@ This module provides:
 
 1. Copy folder `LiveMap` to your phpVMS installation:
    - `Modules/LiveMap`
-2. Enable module if needed:
-   - `php artisan module:enable LiveMap`
-3. Deploy matching `live_map.blade.php` from this release.
+2. Deploy matching `live_map.blade.php` from this release.
+3. Open `/update` in your browser to refresh modules/routes.
 4. Open Admin -> Live Map and save once.
-5. Clear cache:
-   - `php artisan optimize:clear`
+5. Use Admin -> Clear Caches (no SSH required).
 
 ## Important
 

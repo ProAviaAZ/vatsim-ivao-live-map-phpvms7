@@ -33,12 +33,10 @@ For convenience, `LiveMap-full-package.zip` contains both.
 3. Copy `live_map.blade.php` to your active theme widget path, for example:
    - `resources/views/layouts/SPTheme/widgets/live_map.blade.php`
    - `resources/views/layouts/Disposable_v3/widgets/live_map.blade.php`
-4. In phpVMS admin, enable module if needed:
-   - `php artisan module:enable LiveMap`
+4. Open your phpVMS update endpoint in the browser:
+   - `/update`
 5. Open **Admin -> Live Map** and save settings once.
-6. Clear caches:
-   - `php artisan optimize:clear`
-   - `php artisan view:clear`
+6. In the phpVMS Admin area, run **Clear Caches** (no SSH needed).
 
 ### Option B: Module-only update
 

@@ -56,10 +56,9 @@ Do not use `0` in production. In phpVMS core, this value also affects stale/stuc
 
 1. Update module folder: `Modules/LiveMap`
 2. Update widget file: `resources/views/layouts/<your_theme>/widgets/live_map.blade.php`
-3. Clear caches:
-   - `php artisan optimize:clear`
-   - `php artisan view:clear`
-4. Hard refresh browser cache (`Ctrl+F5`)
+3. Open `/update` in the browser.
+4. In Admin, use **Clear Caches**.
+5. Hard refresh browser cache (`Ctrl+F5`)
 
 ## Download Artifacts
 
