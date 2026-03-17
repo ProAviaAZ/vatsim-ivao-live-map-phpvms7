@@ -121,10 +121,10 @@ class SettingsController extends Controller
             'none'   => 'None',
             'clouds' => 'Clouds',
             'radar'  => 'Radar / Precipitation',
-            'storms' => 'Storms / Thunder',
+            'storms' => 'Pressure (storm proxy)',
             'wind'   => 'Wind',
             'temp'   => 'Temperature',
-            'combo'  => 'Combo (Clouds + Radar + Storms)',
+            'combo'  => 'Combo (Clouds + Radar + Pressure)',
         ];
     }
 
@@ -231,7 +231,7 @@ class SettingsController extends Controller
         } elseif ($normalized === '404') {
             $title = 'Not Found (404)';
             $meaning = 'Requested tile/layer path was not accepted by upstream.';
-            $action = 'Use supported layers (clouds, radar, storms, wind, temp) and verify URL format.';
+            $action = 'Use supported layers (clouds, radar, pressure, wind, temp) and verify URL format.';
         } elseif ($normalized === '429') {
             $title = 'Rate limit reached (429)';
             $meaning = 'Too many requests were sent to OpenWeatherMap.';

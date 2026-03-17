@@ -16,9 +16,16 @@ class WeatherProxyController extends Controller
     private const ALLOWED_LAYERS = [
         'clouds_new',
         'precipitation_new',
+        'pressure_new',
+        // Legacy aliases kept for backward-compatible requests from older JS.
         'thunder_new',
+        'weather_new',
         'wind_new',
         'temp_new',
+    ];
+    private const LAYER_ALIASES = [
+        'thunder_new' => 'pressure_new',
+        'weather_new' => 'precipitation_new',
     ];
 
     private const BLANK_TILE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"></svg>';
@@ -33,6 +40,7 @@ class WeatherProxyController extends Controller
         if (!in_array($layer, self::ALLOWED_LAYERS, true)) {
             return $this->blankTileResponse('invalid-layer');
         }
+        $resolvedLayer = self::LAYER_ALIASES[$layer] ?? $layer;
 
         if (!$this->lmBool('acars.livemap_weather_proxy_enabled', true)) {
             return $this->blankTileResponse('proxy-disabled');
@@ -62,7 +70,7 @@ class WeatherProxyController extends Controller
             return $this->blankTileResponse('upstream-cooldown');
         }
 
-        $cacheKey = 'livemap:owm:'.$layer.':'.$z.':'.$x.':'.$y;
+        $cacheKey = 'livemap:owm:'.$resolvedLayer.':'.$z.':'.$x.':'.$y;
         $cached = Cache::get($cacheKey);
         if (is_array($cached) && isset($cached['body'], $cached['type'])) {
             return response(base64_decode((string) $cached['body']), 200)
@@ -72,7 +80,7 @@ class WeatherProxyController extends Controller
                 ->header('X-LiveMap-Cache', 'HIT');
         }
 
-        $url = sprintf('https://tile.openweathermap.org/map/%s/%d/%d/%d.png', $layer, $z, $x, $y);
+        $url = sprintf('https://tile.openweathermap.org/map/%s/%d/%d/%d.png', $resolvedLayer, $z, $x, $y);
         try {
             $upstream = Http::timeout(10)
                 ->retry(1, 200)
@@ -90,12 +98,17 @@ class WeatherProxyController extends Controller
             Log::warning('[LiveMap] OWM proxy non-200 response', [
                 'status' => $upstream->status(),
                 'layer'  => $layer,
+                'resolved_layer' => $resolvedLayer,
                 'z'      => $z,
                 'x'      => $x,
                 'y'      => $y,
             ]);
             Cache::put(self::CACHE_UPSTREAM_FAILED, 1, now()->addSeconds(60));
-            $this->rememberUpstreamError((string) $upstream->status(), 'OWM returned HTTP '.$upstream->status().' for '.$layer);
+            $this->rememberUpstreamError(
+                (string) $upstream->status(),
+                'OWM returned HTTP '.$upstream->status().' for '.$layer.
+                ($resolvedLayer !== $layer ? ' (resolved: '.$resolvedLayer.')' : '')
+            );
 
             return $this->blankTileResponse('upstream-'.$upstream->status());
         }

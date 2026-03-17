@@ -359,8 +359,8 @@
                             <button id="btnRadar" type="button" class="weather-btn" title="Radar / Precipitation">
                                 <i class="fas fa-cloud-sun-rain"></i><span>Radar</span>
                             </button>
-                            <button id="btnStorms" type="button" class="weather-btn" title="Thunder / Storms">
-                                <i class="fas fa-bolt"></i><span>Storms</span>
+                            <button id="btnStorms" type="button" class="weather-btn" title="Pressure (storm proxy)">
+                                <i class="fas fa-bolt"></i><span>Pressure</span>
                             </button>
                             <button id="btnWind" type="button" class="weather-btn" title="Wind">
                                 <i class="fas fa-wind"></i><span>Wind</span>
