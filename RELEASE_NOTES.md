@@ -28,6 +28,12 @@ This hotfix hardens weather tile delivery when OpenWeatherMap layer availability
   - `X-LiveMap-Fallback`
 - warning logs now include attempted upstream layer sequence.
 
+### 4) API Key Persistence in Admin
+
+- leaving the API key input empty no longer clears the stored key on save
+- added explicit checkbox to remove the stored key intentionally
+- key validation now runs only when a new/different key is submitted
+
 ## Upgrade Instructions (No SSH)
 
 Install this release as a **full package** (module + all three widget files).

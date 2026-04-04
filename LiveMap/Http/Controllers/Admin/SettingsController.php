@@ -40,14 +40,21 @@ class SettingsController extends Controller
         ]);
 
         $proxyEnabled = $request->boolean('weather_proxy_enabled');
-        $owmApiKey = trim((string) ($validated['owm_api_key'] ?? ''));
+        $currentOwmApiKey = trim((string) $this->lmGet('acars.livemap_owm_api_key', env('LIVEMAP_OWM_API_KEY', '')));
+        $submittedOwmApiKey = trim((string) ($validated['owm_api_key'] ?? ''));
+        $clearOwmApiKey = $request->boolean('owm_api_key_clear');
+        $owmApiKey = $submittedOwmApiKey !== ''
+            ? $submittedOwmApiKey
+            : ($clearOwmApiKey ? '' : $currentOwmApiKey);
+
         if ($proxyEnabled && $owmApiKey === '') {
             return back()->withInput()->withErrors([
                 'owm_api_key' => 'OpenWeatherMap API key is required when weather proxy is enabled.',
             ]);
         }
 
-        if ($owmApiKey !== '') {
+        $owmApiKeyChanged = $owmApiKey !== $currentOwmApiKey;
+        if ($owmApiKey !== '' && $owmApiKeyChanged) {
             $verification = $this->verifyOwmApiKey($owmApiKey);
             if (!$verification['valid']) {
                 return back()->withInput()->withErrors([

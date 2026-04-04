@@ -154,11 +154,19 @@
             name="owm_api_key"
             type="password"
             class="form-control"
-            value="{{ $lmS('acars.livemap_owm_api_key', '') }}"
-            autocomplete="off"
-            placeholder="Paste OWM key">
+            value="{{ old('owm_api_key', '') }}"
+            autocomplete="new-password"
+            placeholder="{{ $weatherProxyStatus['hasApiKey'] ? 'Leave empty to keep current key, or enter a new one' : 'Paste OWM key' }}">
+          @if($weatherProxyStatus['hasApiKey'])
+            <div class="checkbox" style="margin-top:8px;">
+              <label>
+                <input type="checkbox" name="owm_api_key_clear" value="1" {{ old('owm_api_key_clear') ? 'checked' : '' }}>
+                Remove currently stored API key on save
+              </label>
+            </div>
+          @endif
           <p class="help-block" style="margin-top:6px">
-            The key is validated on Save against OpenWeatherMap. Invalid keys are rejected.
+            New keys are validated on Save against OpenWeatherMap. Leave this field empty to keep the current key.
           </p>
         </div>
         <div class="form-group">

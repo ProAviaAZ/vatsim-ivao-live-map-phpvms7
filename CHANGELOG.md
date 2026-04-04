@@ -18,6 +18,12 @@ All notable changes to this project are documented in this file.
   - `X-LiveMap-Fallback`
 - Extended proxy warning logs with attempted upstream layers.
 
+### Admin Key Persistence Fix
+
+- Saving Live Map settings with an empty OWM API key field now keeps the existing stored key.
+- Added explicit checkbox option to intentionally remove the stored API key.
+- OWM key validation now runs only when the key value was actually changed.
+
 ### Packaging and Metadata
 
 - Updated module metadata version:
