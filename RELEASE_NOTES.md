@@ -1,3 +1,51 @@
+## v4.6.3 - Weather Proxy Resilience Hotfix
+
+Release date: 2026-04-04
+
+## Summary
+
+This hotfix hardens weather tile delivery when OpenWeatherMap layer availability changes and reduces recurring overlay failures from older client requests.
+
+## Key Fixes
+
+### 1) Server-side Upstream Fallback Chain
+
+- weather proxy now attempts compatible layers when the primary pressure layer fails:
+  - `pressure_new`
+  - `precipitation_new`
+  - `clouds_new`
+
+### 2) Legacy Request Compatibility Kept
+
+- older widget requests are still resolved safely:
+  - `thunder_new` -> `pressure_new`
+  - `weather_new` -> `precipitation_new`
+
+### 3) Better Proxy Diagnostics
+
+- added response headers for visibility in browser/network tools:
+  - `X-LiveMap-Upstream-Layer`
+  - `X-LiveMap-Fallback`
+- warning logs now include attempted upstream layer sequence.
+
+## Upgrade Instructions (No SSH)
+
+Install this release as a **full package** (module + all three widget files).
+
+1. Deploy module folder: `Modules/LiveMap`
+2. Deploy widget files to your active theme:
+   - `live_map.blade.php`
+   - `live_map_styles.blade.php`
+   - `live_map_scripts.blade.php`
+3. Open `/update` in browser.
+4. Open **Admin -> Live Map** once.
+5. In Admin, run **Clear Caches**.
+6. Hard refresh browser cache (`Ctrl+F5`).
+
+No SSH/CLI commands are required.
+
+---
+
 ## v4.6.2 - Weather Layer Compatibility Hotfix
 
 Release date: 2026-03-17

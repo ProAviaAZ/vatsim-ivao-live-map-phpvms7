@@ -27,6 +27,10 @@ class WeatherProxyController extends Controller
         'thunder_new' => 'pressure_new',
         'weather_new' => 'precipitation_new',
     ];
+    private const UPSTREAM_LAYER_FALLBACKS = [
+        'pressure_new' => ['precipitation_new', 'clouds_new'],
+        'precipitation_new' => ['clouds_new'],
+    ];
 
     private const BLANK_TILE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"></svg>';
     private const CACHE_UPSTREAM_FAILED = 'livemap:owm:upstream-failed';
@@ -73,41 +77,75 @@ class WeatherProxyController extends Controller
         $cacheKey = 'livemap:owm:'.$resolvedLayer.':'.$z.':'.$x.':'.$y;
         $cached = Cache::get($cacheKey);
         if (is_array($cached) && isset($cached['body'], $cached['type'])) {
+            $cachedLayer = (string) ($cached['upstream_layer'] ?? $resolvedLayer);
             return response(base64_decode((string) $cached['body']), 200)
                 ->header('Content-Type', (string) $cached['type'])
                 ->header('Cache-Control', 'public, max-age=300, s-maxage=300')
                 ->header('X-LiveMap-Proxy', '1')
+                ->header('X-LiveMap-Upstream-Layer', $cachedLayer)
+                ->header('X-LiveMap-Fallback', $cachedLayer !== $resolvedLayer ? '1' : '0')
                 ->header('X-LiveMap-Cache', 'HIT');
         }
 
-        $url = sprintf('https://tile.openweathermap.org/map/%s/%d/%d/%d.png', $resolvedLayer, $z, $x, $y);
-        try {
-            $upstream = Http::timeout(10)
-                ->retry(1, 200)
-                ->accept('image/png')
-                ->get($url, ['appid' => $apiKey]);
-        } catch (\Throwable $e) {
-            Log::warning('[LiveMap] OWM proxy request failed', ['message' => $e->getMessage()]);
+        $upstreamCandidates = $this->upstreamLayerCandidates($resolvedLayer);
+        $attemptedLayers = [];
+        $upstreamLayer = $resolvedLayer;
+        $upstream = null;
+        $lastExceptionMessage = null;
+
+        foreach ($upstreamCandidates as $candidateLayer) {
+            $attemptedLayers[] = $candidateLayer;
+            $url = sprintf('https://tile.openweathermap.org/map/%s/%d/%d/%d.png', $candidateLayer, $z, $x, $y);
+            try {
+                $candidateResponse = Http::timeout(10)
+                    ->retry(1, 200)
+                    ->accept('image/png')
+                    ->get($url, ['appid' => $apiKey]);
+            } catch (\Throwable $e) {
+                $lastExceptionMessage = $e->getMessage();
+                continue;
+            }
+
+            $upstream = $candidateResponse;
+            $upstreamLayer = $candidateLayer;
+            if ($candidateResponse->ok()) {
+                break;
+            }
+        }
+
+        if ($upstream === null) {
+            Log::warning('[LiveMap] OWM proxy request failed', [
+                'message'          => $lastExceptionMessage ?? 'All upstream attempts failed',
+                'layer'            => $layer,
+                'resolved_layer'   => $resolvedLayer,
+                'attempted_layers' => $attemptedLayers,
+                'z'                => $z,
+                'x'                => $x,
+                'y'                => $y,
+            ]);
             Cache::put(self::CACHE_UPSTREAM_FAILED, 1, now()->addSeconds(60));
-            $this->rememberUpstreamError('NETWORK', $e->getMessage());
+            $this->rememberUpstreamError('NETWORK', (string) ($lastExceptionMessage ?? 'All upstream attempts failed'));
 
             return $this->blankTileResponse('upstream-exception');
         }
 
         if (!$upstream->ok()) {
             Log::warning('[LiveMap] OWM proxy non-200 response', [
-                'status' => $upstream->status(),
-                'layer'  => $layer,
-                'resolved_layer' => $resolvedLayer,
-                'z'      => $z,
-                'x'      => $x,
-                'y'      => $y,
+                'status'           => $upstream->status(),
+                'layer'            => $layer,
+                'resolved_layer'   => $resolvedLayer,
+                'upstream_layer'   => $upstreamLayer,
+                'attempted_layers' => $attemptedLayers,
+                'z'                => $z,
+                'x'                => $x,
+                'y'                => $y,
             ]);
             Cache::put(self::CACHE_UPSTREAM_FAILED, 1, now()->addSeconds(60));
             $this->rememberUpstreamError(
                 (string) $upstream->status(),
                 'OWM returned HTTP '.$upstream->status().' for '.$layer.
-                ($resolvedLayer !== $layer ? ' (resolved: '.$resolvedLayer.')' : '')
+                ($resolvedLayer !== $layer ? ' (resolved: '.$resolvedLayer.')' : '').
+                ' (attempted: '.implode(' -> ', $attemptedLayers).')'
             );
 
             return $this->blankTileResponse('upstream-'.$upstream->status());
@@ -120,14 +158,17 @@ class WeatherProxyController extends Controller
         $contentType = $upstream->header('Content-Type', 'image/png');
 
         Cache::put($cacheKey, [
-            'body' => base64_encode($body),
-            'type' => $contentType,
+            'body'           => base64_encode($body),
+            'type'           => $contentType,
+            'upstream_layer' => $upstreamLayer,
         ], now()->addMinutes(5));
 
         return response($body, 200)
             ->header('Content-Type', $contentType)
             ->header('Cache-Control', 'public, max-age=300, s-maxage=300')
             ->header('X-LiveMap-Proxy', '1')
+            ->header('X-LiveMap-Upstream-Layer', $upstreamLayer)
+            ->header('X-LiveMap-Fallback', $upstreamLayer !== $resolvedLayer ? '1' : '0')
             ->header('X-LiveMap-Cache', 'MISS');
     }
 
@@ -146,6 +187,18 @@ class WeatherProxyController extends Controller
         Cache::put(self::CACHE_LAST_ERROR_CODE, strtoupper(trim($code)), now()->addDay());
         Cache::put(self::CACHE_LAST_ERROR_REASON, trim($reason), now()->addDay());
         Cache::put(self::CACHE_LAST_ERROR_AT, now()->toDateTimeString(), now()->addDay());
+    }
+
+    private function upstreamLayerCandidates(string $resolvedLayer): array
+    {
+        $candidates = [$resolvedLayer];
+        foreach (self::UPSTREAM_LAYER_FALLBACKS[$resolvedLayer] ?? [] as $fallbackLayer) {
+            if (!in_array($fallbackLayer, $candidates, true)) {
+                $candidates[] = $fallbackLayer;
+            }
+        }
+
+        return $candidates;
     }
 
     private function lmGet(string $legacyKey, $default = null)

@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [4.6.3] — 2026-04-04
+
+### Weather Proxy Resilience
+
+- Added server-side upstream fallback chain for weather tiles:
+  - `pressure_new` -> `precipitation_new` -> `clouds_new`
+- Kept legacy layer alias handling so old widget requests still resolve safely:
+  - `thunder_new` -> `pressure_new`
+  - `weather_new` -> `precipitation_new`
+- Added diagnostic response headers for easier troubleshooting:
+  - `X-LiveMap-Upstream-Layer`
+  - `X-LiveMap-Fallback`
+- Extended proxy warning logs with attempted upstream layers.
+
+### Packaging and Metadata
+
+- Updated module metadata version:
+  - `LiveMap/module.json` -> `"version": "4.6.3"`
+- Updated release docs/examples to `v4.6.3`.
+
+---
+
 ## [4.6.2] — 2026-03-17
 
 ### Weather Layer Compatibility Hotfix
